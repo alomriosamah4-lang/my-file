@@ -5,7 +5,8 @@ android {
 
     defaultConfig {
         applicationId "com.securevault"
-        minSdkVersion 29
+        // broaden device compatibility while being mindful of native libs
+        minSdkVersion 21
         targetSdkVersion 34
         versionCode 1
         versionName "0.1.0"
@@ -37,11 +38,29 @@ android {
             arguments "-DBUILD_LIBSODIUM=ON", "-DBUILD_ARGON2=ON"
         }
     }
-
     ndkVersion "25.2.9519653"
     // ABI filters to build for
     ndk {
         abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+    }
+
+    // Optional signing configuration: read keystore properties from a file
+    def keystorePropertiesFile = rootProject.file("keystore.properties")
+    def keystoreProperties = new Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                def storeFilePath = keystoreProperties.getProperty('storeFile') ?: 'keystore.jks'
+                storeFile file(storeFilePath)
+                storePassword keystoreProperties.getProperty('storePassword')
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+            }
+        }
     }
 
     packagingOptions {

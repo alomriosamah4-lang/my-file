@@ -49,7 +49,7 @@
     "@babel/preset-react": "^7.24.0",
     "@babel/preset-typescript": "^7.24.0",
     "react-dom": "18.2.0",
-    "react-native-web": "0.19.18",
+    "react-native-web": "0.19.13",
     "css-loader": "^6.8.1",
     "style-loader": "^3.3.3",
     "babel-plugin-react-native-web": "^0.17.1"
