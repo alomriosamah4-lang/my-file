@@ -30,8 +30,14 @@ object NativeCrypto {
 
     // Public safe wrappers
     fun jniInit() {
-        ensureLoaded()
-        _jniInit()
+        if (!nativeLoaded) return
+        try {
+            _jniInit()
+        } catch (t: Throwable) {
+            // swallow native init errors and keep nativeLoaded flag
+            nativeLoaded = false
+            throw t
+        }
     }
 
     fun generateSalt(): ByteArray {
@@ -41,7 +47,13 @@ object NativeCrypto {
 
     fun deriveKey(password: ByteArray, salt: ByteArray): ByteArray {
         ensureLoaded()
-        return _deriveKey(password, salt)
+        // copy password to avoid accidental retention if caller mutates later
+        val pwCopy = password.copyOf()
+        try {
+            return _deriveKey(pwCopy, salt)
+        } finally {
+            pwCopy.fill(0)
+        }
     }
 
     fun generateMasterKey(): ByteArray {
@@ -51,7 +63,12 @@ object NativeCrypto {
 
     fun wrapMasterKey(masterKey: ByteArray): ByteArray {
         ensureLoaded()
-        return _wrapMasterKey(masterKey)
+        val mkCopy = masterKey.copyOf()
+        try {
+            return _wrapMasterKey(mkCopy)
+        } finally {
+            mkCopy.fill(0)
+        }
     }
 
     fun unwrapMasterKey(wrapped: ByteArray): ByteArray {
@@ -70,8 +87,12 @@ object NativeCrypto {
     }
 
     fun selfTest(): Boolean {
-        ensureLoaded()
-        return _selfTest()
+        if (!nativeLoaded) return false
+        return try {
+            _selfTest()
+        } catch (t: Throwable) {
+            false
+        }
     }
 
     fun isNativeAvailable(): Boolean = nativeLoaded
