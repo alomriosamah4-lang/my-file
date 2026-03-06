@@ -15,6 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create root gradlew shim
+        run: |
+          cat > gradlew <<'EOF'
+          #!/bin/sh
+          exec ./android/gradlew "$@"
+          EOF
+          chmod +x gradlew
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
