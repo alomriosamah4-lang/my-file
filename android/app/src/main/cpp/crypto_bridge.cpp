@@ -10,6 +10,11 @@
 #include <argon2.h>
 #endif
 
+static void throw_link_error(JNIEnv* env, const char* msg) {
+    jclass exClass = env->FindClass("java/lang/UnsatisfiedLinkError");
+    if (exClass) env->ThrowNew(exClass, msg);
+}
+
 static void zeroize_buf(unsigned char* buf, size_t len) {
 #if defined(HAVE_SODIUM)
     sodium_memzero(buf, len);
@@ -40,7 +45,9 @@ Java_com_securevault_NativeCrypto_generateSalt(JNIEnv* env, jclass clazz) {
 #if defined(HAVE_SODIUM)
     randombytes_buf(salt.data(), len);
 #else
-    for (int i = 0; i < len; ++i) salt[i] = 0;
+    throw_link_error(env, "libsodium not available: cryptographic operations disabled");
+    jbyteArray empty = env->NewByteArray(0);
+    return empty;
 #endif
     jbyteArray out = env->NewByteArray(len);
     env->SetByteArrayRegion(out, 0, len, reinterpret_cast<jbyte*>(salt.data()));
@@ -80,6 +87,9 @@ Java_com_securevault_NativeCrypto_selfTest(JNIEnv* env, jclass clazz) {
 
     return JNI_TRUE;
 #else
+#endif
+    // If compiled without required crypto libs, fail fast at runtime
+    throw_link_error(env, "Required native crypto libraries not available");
     return JNI_FALSE;
 #endif
 }
@@ -107,8 +117,11 @@ Java_com_securevault_NativeCrypto_deriveKey(JNIEnv* env, jclass clazz, jbyteArra
         for (int i = 0; i < keyLen; ++i) key[i] = 0;
     }
 #else
-    // stub: derive by simple (insecure) copy/truncation for now
-    for (int i = 0; i < keyLen; ++i) key[i] = (i < pass.size()) ? pass[i] : 0;
+    throw_link_error(env, "argon2 not available: key derivation disabled");
+    jbyteArray empty = env->NewByteArray(0);
+    // zero sensitive buffers
+    zeroize_buf(pass.data(), pass.size());
+    return empty;
 #endif
 
     zeroize_buf(pass.data(), pass.size());
@@ -126,7 +139,9 @@ Java_com_securevault_NativeCrypto_generateMasterKey(JNIEnv* env, jclass clazz) {
 #if defined(HAVE_SODIUM)
     randombytes_buf(key.data(), keyLen);
 #else
-    for (int i = 0; i < keyLen; ++i) key[i] = 1;
+    throw_link_error(env, "libsodium not available: secure RNG disabled");
+    jbyteArray empty = env->NewByteArray(0);
+    return empty;
 #endif
     jbyteArray out = env->NewByteArray(keyLen);
     env->SetByteArrayRegion(out, 0, keyLen, reinterpret_cast<jbyte*>(key.data()));
@@ -136,13 +151,9 @@ Java_com_securevault_NativeCrypto_generateMasterKey(JNIEnv* env, jclass clazz) {
 
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_securevault_NativeCrypto_wrapMasterKey(JNIEnv* env, jclass clazz, jbyteArray masterKey) {
-    // Wrapping should be done with Android Keystore from Kotlin layer; JNI stub returns copy
-    jsize len = env->GetArrayLength(masterKey);
-    jbyteArray out = env->NewByteArray(len);
-    jbyte* buf = env->GetByteArrayElements(masterKey, NULL);
-    env->SetByteArrayRegion(out, 0, len, buf);
-    env->ReleaseByteArrayElements(masterKey, buf, JNI_ABORT);
-    return out;
+    throw_link_error(env, "wrapMasterKey should be performed by Keystore in Kotlin; native stub disabled");
+    jbyteArray empty = env->NewByteArray(0);
+    return empty;
 }
 
 extern "C" JNIEXPORT jbyteArray JNICALL
@@ -160,7 +171,6 @@ extern "C" JNIEXPORT jbyteArray JNICALL
 Java_com_securevault_NativeCrypto_encryptChunk(JNIEnv* env, jclass clazz, jbyteArray masterKey, jbyteArray chunk, jint sequence) {
     jsize len = env->GetArrayLength(chunk);
     jbyte* buf = env->GetByteArrayElements(chunk, NULL);
-
 #if defined(HAVE_SODIUM)
     // get master key bytes passed from Java
     jsize keyLen = env->GetArrayLength(masterKey);
@@ -200,11 +210,11 @@ Java_com_securevault_NativeCrypto_encryptChunk(JNIEnv* env, jclass clazz, jbyteA
     env->ReleaseByteArrayElements(chunk, buf, JNI_ABORT);
     return out;
 #else
-    // identity fallback (non-secure) - keep behaviour but do not pretend security
-    jbyteArray out = env->NewByteArray(len);
-    env->SetByteArrayRegion(out, 0, len, buf);
+    // If libsodium not available, fail explicitly
     env->ReleaseByteArrayElements(chunk, buf, JNI_ABORT);
-    return out;
+    throw_link_error(env, "libsodium not available: encryption disabled");
+    jbyteArray empty = env->NewByteArray(0);
+    return empty;
 #endif
 }
 
@@ -250,10 +260,10 @@ Java_com_securevault_NativeCrypto_decryptChunk(JNIEnv* env, jclass clazz, jbyteA
     env->ReleaseByteArrayElements(chunk, buf, JNI_ABORT);
     return out;
 #else
-    jbyteArray out = env->NewByteArray(len);
-    env->SetByteArrayRegion(out, 0, len, buf);
     env->ReleaseByteArrayElements(chunk, buf, JNI_ABORT);
-    return out;
+    throw_link_error(env, "libsodium not available: decryption disabled");
+    jbyteArray empty = env->NewByteArray(0);
+    return empty;
 #endif
 }
 

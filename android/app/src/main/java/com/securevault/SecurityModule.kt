@@ -27,7 +27,7 @@ class SecurityModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
     override fun getName(): String = "SecurityModule"
 
-    private val sessions = ConcurrentHashMap<String, ByteArray>()
+    private val sessions = ConcurrentHashMap<String, Long>()
 
     @ReactMethod
     fun isDeviceSecure(promise: Promise) {
@@ -104,9 +104,9 @@ class SecurityModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             // zeroize masterKey in Java heap immediately
             for (i in masterKey.indices) masterKey[i] = 0
 
-            // Store session handle in ephemeral session map
+            // Store session handle in ephemeral session map (boxed Long)
             val sessionToken = java.util.UUID.randomUUID().toString()
-            sessions[sessionToken] = java.lang.Long.valueOf(sessionHandle)
+            sessions[sessionToken] = sessionHandle
 
             val result: WritableMap = Arguments.createMap()
             result.putString("sessionToken", sessionToken)
@@ -121,7 +121,7 @@ class SecurityModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         try {
             val handleObj = sessions.remove(sessionToken)
             if (handleObj != null) {
-                val handle = (handleObj as java.lang.Long).toLong()
+                val handle = handleObj
                 try {
                     NativeCrypto.destroySession(handle)
                 } catch (t: Throwable) {

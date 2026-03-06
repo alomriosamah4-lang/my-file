@@ -1,9 +1,14 @@
 import React from 'react';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createNativeStackNavigator, NativeStackNavigationProp} from '@react-navigation/native-stack';
 import Splash from '../screens/Splash';
 import Onboarding from '../screens/Onboarding';
 import SecuritySetup from '../screens/SecuritySetup';
 import VaultList from '../screens/VaultList';
+import SetupPin from '../screens/SetupPin';
+import SetupPassword from '../screens/SetupPassword';
+import SetupPattern from '../screens/SetupPattern';
+import SetupBiometric from '../screens/SetupBiometric';
+import SecurityError from '../screens/SecurityError';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -14,7 +19,10 @@ export type RootStackParamList = {
   SetupPassword: undefined;
   SetupPattern: undefined;
   SetupBiometric: {type?: string; vaultId?: string} | undefined;
+  SecurityError: undefined;
 };
+
+export type AppNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -24,10 +32,11 @@ const RootNavigator: React.FC = () => (
     <Stack.Screen name="Onboarding" component={Onboarding} />
     <Stack.Screen name="SecuritySetup" component={SecuritySetup} />
     <Stack.Screen name="VaultList" component={VaultList} />
-    <Stack.Screen name="SetupPin" component={require('../screens/SetupPin').default} />
-    <Stack.Screen name="SetupPassword" component={require('../screens/SetupPassword').default} />
-    <Stack.Screen name="SetupPattern" component={require('../screens/SetupPattern').default} />
-    <Stack.Screen name="SetupBiometric" component={require('../screens/SetupBiometric').default} />
+    <Stack.Screen name="SetupPin" component={SetupPin} />
+    <Stack.Screen name="SetupPassword" component={SetupPassword} />
+    <Stack.Screen name="SetupPattern" component={SetupPattern} />
+    <Stack.Screen name="SetupBiometric" component={SetupBiometric} />
+    <Stack.Screen name="SecurityError" component={SecurityError} />
   </Stack.Navigator>
 );
 

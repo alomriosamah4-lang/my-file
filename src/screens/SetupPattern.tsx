@@ -3,15 +3,16 @@ import {View, Text, StyleSheet, Alert} from 'react-native';
 import PrimaryButton from '../components/PrimaryButton';
 import {useNavigation} from '@react-navigation/native';
 import {Colors} from '../styles/theme';
+import {AppNavigationProp} from '../navigation/RootNavigator';
 
 const SetupPattern: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
   const [pattern, setPattern] = useState('');
 
   const handleSave = () => {
     if (pattern.length < 4) return Alert.alert('خطأ', 'الرجاء رسم نمط أطول.');
     // placeholder: pattern capture and confirm
-    (navigation as any).navigate('VaultList');
+    navigation.navigate('VaultList');
   };
 
   return (

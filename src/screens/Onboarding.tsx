@@ -1,8 +1,9 @@
-import React, {useRef, useState, useEffect, useRef as useRefAny} from 'react';
-import {View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Animated} from 'react-native';
+import React, {useRef, useState, useEffect, useCallback} from 'react';
+import {View, Text, StyleSheet, FlatList, Dimensions, Animated, ViewToken} from 'react-native';
 import PrimaryButton from '../components/PrimaryButton';
 import {useNavigation} from '@react-navigation/native';
 import {Colors} from '../styles/theme';
+import { AppNavigationProp } from '../navigation/RootNavigator';
 
 const {width} = Dimensions.get('window');
 
@@ -13,8 +14,8 @@ const PAGES = [
 ];
 
 const Onboarding: React.FC = () => {
-  const navigation = useNavigation();
-  const ref = useRef<FlatList<any>>(null);
+  const navigation = useNavigation<AppNavigationProp>();
+  const flatListRef = useRef<FlatList<(typeof PAGES)[0]>>(null);
   const [index, setIndex] = useState(0);
   const titleOpacity = useRef(new Animated.Value(1)).current;
 
@@ -24,16 +25,27 @@ const Onboarding: React.FC = () => {
     Animated.timing(titleOpacity, {toValue: 1, duration: 360, useNativeDriver: true}).start();
   }, [index, titleOpacity]);
 
+  const onViewableItemsChanged = useCallback(({viewableItems}: {viewableItems: Array<ViewToken>}) => {
+    if (viewableItems.length > 0) {
+      setIndex(viewableItems[0].index ?? 0);
+    }
+  }, []);
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
+
   return (
     <View style={styles.container}>
       <FlatList
-        ref={ref}
+        ref={flatListRef}
         data={PAGES}
         keyExtractor={(i) => i.key}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
         renderItem={({item}) => (
           <View style={[styles.page, {width}]}>
             <View style={styles.illustration} />
@@ -52,9 +64,9 @@ const Onboarding: React.FC = () => {
 
         <PrimaryButton title={index === PAGES.length - 1 ? 'ابدأ الآن' : 'التالي'} onPress={() => {
           if (index === PAGES.length - 1) {
-            (navigation as any).navigate('SecuritySetup');
+            navigation.navigate('SecuritySetup');
           } else {
-            ref.current?.scrollToIndex({index: index + 1});
+            flatListRef.current?.scrollToIndex({index: index + 1});
           }
         }} />
       </View>

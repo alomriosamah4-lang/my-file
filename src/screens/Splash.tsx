@@ -1,36 +1,76 @@
-import React from 'react';
-import {View, Text, StyleSheet, I18nManager} from 'react-native';
+import React, {useEffect} from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import PrimaryButton from '../components/PrimaryButton';
-import {useNavigation} from '@react-navigation/native';
-import {Colors} from '../styles/theme';
+import { Colors } from '../styles/theme';
+import { AppNavigationProp } from '../navigation/RootNavigator';
+import NativeSecurity from '../native/SecurityModule';
 
 const Splash: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<AppNavigationProp>();
 
-  const isRTL = I18nManager.isRTL;
+  useEffect(() => {
+    const checkSecurity = async () => {
+      const secure = await NativeSecurity.nativeSelfTest();
+      if (!secure) {
+        navigation.replace('SecurityError');
+      }
+    };
+    checkSecurity();
+  }, [navigation]);
+
+  const handleStart = () => {
+    // As per USER_FLOW, Splash -> Onboarding
+    navigation.navigate('Onboarding');
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoPlaceholder}>
-        <Text style={styles.logoChar}>خ</Text>
+      <View style={styles.content}>
+        {/* Placeholder for Logo */}
+        <View style={styles.logoPlaceholder} />
+        <Text style={styles.appName}>خزنتي</Text>
+        <Text style={styles.tagline}>أمان ملفاتك هو أولويتنا</Text>
       </View>
-      <Text style={[styles.title, isRTL ? {textAlign: 'right'} : null]}>خزنتي</Text>
-      <Text style={[styles.tagline, isRTL ? {textAlign: 'right'} : null]}>خزنة آمنة لملفاتك</Text>
-
       <View style={styles.footer}>
-        <PrimaryButton title="بدء الاستخدام" onPress={() => (navigation as any).navigate('Onboarding')} />
+        <PrimaryButton title="بدء الاستخدام" onPress={handleStart} />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: Colors.dark.background},
-  logoPlaceholder: {width: 120, height: 120, marginBottom: 16, borderRadius: 60, backgroundColor: Colors.dark.surface, alignItems: 'center', justifyContent: 'center'},
-  logoChar: {fontSize: 48, color: Colors.dark.accent[0], fontWeight: '700'},
-  title: {fontSize: 28, fontWeight: '700', color: '#fff'},
-  tagline: {fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 8, textAlign: 'center'},
-  footer: {position: 'absolute', left: 20, right: 20, bottom: 40},
+  container: {
+    flex: 1,
+    backgroundColor: Colors.dark.background,
+    justifyContent: 'space-between',
+    padding: 24,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+    backgroundColor: Colors.dark.surface,
+    marginBottom: 24,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  footer: {
+    paddingBottom: 20, // For safe area
+  },
 });
 
 export default Splash;

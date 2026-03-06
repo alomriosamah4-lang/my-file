@@ -1,34 +1,47 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, Alert} from 'react-native';
 import PrimaryButton from '../components/PrimaryButton';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
 import {Colors} from '../styles/theme';
 import NativeSecurity from '../native/SecurityModule';
+import {AppNavigationProp, RootStackParamList} from '../navigation/RootNavigator';
+
+type SetupBiometricRouteProp = RouteProp<RootStackParamList, 'SetupBiometric'>;
 
 const SetupBiometric: React.FC = () => {
-  const navigation = useNavigation();
-  const route: any = useRoute();
+  const navigation = useNavigation<AppNavigationProp>();
+  const route = useRoute<SetupBiometricRouteProp>();
   const type = route.params?.type || 'fingerprint';
-  const vaultId = route.params?.vaultId as string | undefined;
+  const vaultId = route.params?.vaultId;
   const [loading, setLoading] = useState(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   const handleEnable = async () => {
     try {
       setLoading(true);
       const secure = await NativeSecurity.isDeviceSecure();
       if (!secure) {
-        setLoading(false);
+        if (isMounted.current) setLoading(false);
         return Alert.alert('غير متاح', 'الميزة غير مدعومة على هذا الجهاز.');
       }
       // In a real flow we would enable on an existing vault; here we call enableBiometric on a default vault if exists.
       // For now, call enableBiometric and handle errors.
       await NativeSecurity.enableBiometric(vaultId || 'default');
-      setLoading(false);
-      Alert.alert('تم', 'تم تفعيل المصادقة البيومترية');
-      (navigation as any).navigate('VaultList');
+      
+      if (isMounted.current) {
+        setLoading(false);
+        Alert.alert('تم', 'تم تفعيل المصادقة البيومترية');
+        navigation.navigate('VaultList');
+      }
     } catch (err: any) {
-      setLoading(false);
-      Alert.alert('خطأ', err?.message || 'فشل تفعيل المصادقة البيومترية');
+      if (isMounted.current) {
+        setLoading(false);
+        Alert.alert('خطأ', err?.message || 'فشل تفعيل المصادقة البيومترية');
+      }
     }
   };
 
